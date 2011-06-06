@@ -24,7 +24,8 @@ my $COOKIES = $$config{cookies};
 my $HOME    = "http://$HOST/home.php";
 
 my $browser = LWP::UserAgent->new;
-$browser->default_header('Cookie',$vl_cookies);
+$browser->cookie_jar( {} );
+$browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
 
 
 exit 0;
@@ -38,10 +39,10 @@ sub read_cookies {
         chomp($cookies); # yummy!
         close FILE;
     } else {
-        print STDERR "unable to open $cookie_file: $!\n";
-        return undef;
+        print STDERR "could not get $url -- ", $response->status_line, "\n";
+        exit 1;
     }
-    return $cookies;
+    sleep 1;
 }
 
 sub read_config {
@@ -55,7 +56,7 @@ sub read_config {
             next if ($line =~ /^\s*#/);
             $line =~ s/^\s*//;
             $line =~ s/\s*$//;
-            my ($opt,$val) = split(/\s*=\s*/,$line);
+            my ($opt,$val) = split(/\s+=\s+/,$line);
             $options{$opt} = $val;
         }
         close FILE;
