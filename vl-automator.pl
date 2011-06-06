@@ -45,7 +45,7 @@ sub read_cookies {
         chomp($cookies); # yummy!
         close FILE;
     } else {
-        print STDERR "could not open $cookie_file: $!\n";
+        print STDERR "unable to open $cookie_file: $!\n";
         return undef;
     }
     return $cookies;
