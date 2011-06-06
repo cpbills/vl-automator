@@ -86,11 +86,14 @@ sub fight_someone {
     my $fight = pop(@$fights);
 
     my $fight_result = &get_page("$BASE/$fight");
-    if ($fight_result =~ /defeat/i) {
-        return 'defeated';
-    } else {
+    print "$BASE/$fight\n" if ($DEBUG);
+    if ($fight_result =~ /you won the fight/i) {
         return '#winning';
+    } 
+    if ($fight_result =~ /cannot process your request/i) {
+        return "request failed\n$fight";
     }
+    return 'defeated';
 }
 
 sub extract_links {
@@ -185,7 +188,7 @@ sub get_page {
     my $url         =   shift;
 
     my $response = $browser->get("$url", Cookie => "$COOKIES");
-    sleep 2;
+    sleep 1;
 
     if ($response->is_success) {
         return $response->content;
