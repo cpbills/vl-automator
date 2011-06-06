@@ -1,2 +1,9 @@
-cookies =   asc=7lkjfhdslakjahflkdsjnfaksjdgsdgfk496a714; st=581hagdjasdfdsfka87da3cf4cckjdhaslkjhfjlksdjf;fdfdsfsd307321860%2C12%2C%2Ca1.54%2C147%2C3%2Csdv10008-a1.54%2C2011-06-05+17%3A57%3A40%2C%2CiPhone%2Cminisdv2000%2C%2Cv1_1326183860_9c386252f76321873kfdsa19e221542cb941ec75
-host    =   vl.storm8.com
+base            =   http://vl.storm8.com
+
+# mission details, so we can automate doing missions... huzzah
+# these are the details for 'Eliminate STraggling Cub' (mis-cap intentional)
+mission_page    =   missions.php?cat=18
+mission_jid     =   97
+mission_energy  =   12
+
+cookies         =   asc=7lkjfhdslakjahflkdsjnfaksjdgsdgfk496a714; st=581hagdjasdfdsfka87da3cf4cckjdhaslkjhfjlksdjf;fdfdsfsd307321860%2C12%2C%2Ca1.54%2C147%2C3%2Csdv10008-a1.54%2C2011-06-05+17%3A57%3A40%2C%2CiPhone%2Cminisdv2000%2C%2Cv1_1326183860_9c386252f76321873kfdsa19e221542cb941ec75
