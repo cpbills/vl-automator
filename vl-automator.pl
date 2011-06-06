@@ -10,7 +10,11 @@ use Getopt::Std;
 my $OPTS = {};
 
 # get the options using Getopt::Std's exported 'getopts'
-getopts('c:h:',$OPTS);
+getopts('C:h:c:',$OPTS);
+
+# this is a file containing url options / params to pass to the storm8 server
+my $CONFIG = './storm8.vl.config';
+my $CONFIG = $$OPTS{c} if ($$OPTS{c});
 
 # this file contains the cookies for signing in.
 my $COOKIES = "./storm8-vl.cookies";
@@ -19,6 +23,9 @@ my $COOKIES = "./storm8-vl.cookies";
 # this is the http host we will connect to.
 my $HOST = 'vl.storm8.com';
    $HOST = $$OPTS{h} if ($$OPTS{h});
+
+my $config = read_config($CONFIG);
+exit 1 unless ($config);
 
 my $vl_cookies = read_cookies($COOKIES);
 exit 1 unless ($vl_cookies);
