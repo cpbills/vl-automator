@@ -89,7 +89,7 @@ sub fight_someone {
     print "$BASE/$fight\n" if ($DEBUG);
     if ($fight_result =~ /you won the fight/i) {
         return '#winning';
-    } 
+    }
     if ($fight_result =~ /cannot process your request/i) {
         return "request failed\n$fight";
     }
