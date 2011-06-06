@@ -10,20 +10,38 @@ use Getopt::Std;
 my $OPTS = {};
 
 # get the options using Getopt::Std's exported 'getopts'
-getopts('c:',$OPTS);
+getopts('c:h:',$OPTS);
 
-my $CONFIG = "$ENV{HOME}/.storm8-vl.conf";
-   $CONFIG = $$OPTS{c} if ($$OPTS{c});
+# this file contains the cookies for signing in.
+my $COOKIES = "./storm8-vl.cookies";
+   $COOKIES = $$OPTS{c} if ($$OPTS{c});
 
-my $conf = read_config($CONFIG);
-exit 1 unless ($conf);
+# this is the http host we will connect to.
+my $HOST = 'vl.storm8.com';
+   $HOST = $$OPTS{h} if ($$OPTS{h});
 
-foreach my $key (keys %$conf) {
-    print "$key: $$conf{$key}\n";
-}
+my $vl_cookies = read_cookies($COOKIES);
+exit 1 unless ($vl_cookies);
+
+my $browser = LWP::UserAgent->new;
+$browser->default_header('Cookie',$vl_cookies);
+
 
 exit 0;
 
+
+sub read_cookies {
+    my $cookie_file = shift;
+
+    if (open FILE,'<',$cookie_file) {
+        my $cookies = (<FILE>);
+        chomp($cookies); # yummy!
+    } else {
+        print STDERR "could not open $cookie_file: $!\n";
+        return undef;
+    }
+    return $cookies;
+}
 
 sub read_config {
     my $conf_file = shift;
