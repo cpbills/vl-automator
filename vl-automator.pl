@@ -19,9 +19,9 @@ my $CONFIG = './config';
 my $config = read_config($CONFIG);
 exit 1 unless ($config);
 
-my $HOST    = $$config{host};
 my $COOKIES = $$config{cookies};
-my $HOME    = "http://$HOST/home.php";
+my $BASE    = $$config{base};
+my $HOME    = "$BASE/home.php";
 
 my $browser = LWP::UserAgent->new;
 $browser->cookie_jar( {} );
@@ -30,13 +30,16 @@ $browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
 my $html = &get_page($HOME);
 my $info = &get_info($html);
 
-foreach my $key (keys %$info) {
-    print "$key: $$info{$key}\n";
-}
-
-while ($$info{frenzy} > 0) {
-    &heal_thyself if ($$info{health} < 28);
-    &fight_someone($html);
+while ($$info{frenzy} > 0 || $$info{energy} >= $$config{mission_energy}) {
+    foreach my $key (keys %$info) {
+        print "$key: $$info{$key}\n";
+    }
+    if ($$info{frenzy} > 0) {
+        &heal_thyself if ($$info{health} < 28);
+        &fight_someone;
+    } elsif ($$info{energy} >= $$config{mission_energy}) {
+        &do_a_mission($$config{mission_page},$$config{mission_jid});
+    }
     $html = &get_page($HOME);
     $info = &get_info($html);
 }
@@ -44,22 +47,34 @@ while ($$info{frenzy} > 0) {
 exit 0;
 
 sub heal_thyself {
-    my $result = &get_page("http://$HOST/hospital.php?action=heal");
+    my $result = &get_page("$BASE/hospital.php?action=heal");
+}
+
+sub do_a_mission {
+    # best mission, currently, is 'eliminate straggling cubs'
+    # in the downtown mission block, 12 energy for 14 experience
+    # 1.166666 : 1 ... not bad. 'jid' is 97
+    my $cat     =   shift;
+    my $jid     =   shift;
+
+    my $page = &get_page("$BASE/$cat");
+    my $missions = &extract_links($page);
+    foreach my $mission (@$missions) {
+        my $result = &get_page("$BASE/$mission") if ($mission =~ /jid=$jid/);
+    }
 }
 
 sub fight_someone {
-    my $html    =   shift;
-    my ($fight_link) = ($html =~ /['"](\/fight\.php[^'"]*)/gis);
-    my $fight_page = &get_page("http://${HOST}${fight_link}");
-    my $fights = &process_fight_page("$fight_page");
+    my $fight_page = &get_page("$BASE/fight.php");
+    my $fights = &extract_links("$fight_page");
     &fisher_yates_shuffle($fights);
 
     my $fight = pop(@$fights);
-       $fight = "http://${HOST}/${fight}";
-    my $fight_result = &get_page("$fight");
+
+    my $fight_result = &get_page("$BASE/$fight");
 }
 
-sub process_fight_page {
+sub extract_links {
     # this function is /really/ sloppy, and therefore prone to breaking...
     my $source  = shift;
 
@@ -151,6 +166,7 @@ sub get_page {
     my $url         =   shift;
 
     my $response = $browser->get("$url", Cookie => "$COOKIES");
+    sleep 2;
 
     if ($response->is_success) {
         return $response->content;
@@ -158,7 +174,6 @@ sub get_page {
         print STDERR "could not get $url -- ", $response->status_line, "\n";
         exit 1;
     }
-    sleep 1;
 }
 
 sub read_config {
