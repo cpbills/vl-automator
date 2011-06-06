@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use LWP::UserAgent;
+use LWP;
 use Getopt::Std;
 
 # hashref to hold our options...
