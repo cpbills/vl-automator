@@ -43,6 +43,7 @@ sub read_cookies {
     if (open FILE,'<',$cookie_file) {
         my $cookies = (<FILE>);
         chomp($cookies); # yummy!
+        close FILE;
     } else {
         print STDERR "could not open $cookie_file: $!\n";
         return undef;
