@@ -36,7 +36,7 @@ sub read_config {
             next if ($line =~ /^\s*#/);
             $line =~ s/^\s*//;
             $line =~ s/\s*$//;
-            my ($opt,$val) = split(/=/,$line);
+            my ($opt,$val) = split(/\s*=\s*/,$line);
             $options{$opt} = $val;
         }
         close FILE;
