@@ -10,11 +10,17 @@ use Getopt::Std;
 my $OPTS = {};
 
 # get the options using Getopt::Std's exported 'getopts'
-getopts('c:',$OPTS);
+getopts('c:dv',$OPTS);
 
 # this is a file containing url options / params to pass to the storm8 server
 my $CONFIG = './config';
    $CONFIG = $$OPTS{c} if ($$OPTS{c});
+
+my $DEBUG   = 0;
+   $DEBUG   = 1 if ($$OPTS{d});
+
+my $VERBOSE = 0;
+   $VERBOSE = 1 if ($$OPTS{v});
 
 my $config = read_config($CONFIG);
 exit 1 unless ($config);
@@ -31,13 +37,21 @@ my $html = &get_page($HOME);
 my $info = &get_info($html);
 
 while ($$info{frenzy} > 0 || $$info{energy} >= $$config{mission_energy}) {
-    foreach my $key (keys %$info) {
-        print "$key: $$info{$key}\n";
+    if ($DEBUG) {
+        foreach my $key (keys %$info) {
+            print "$key: $$info{$key}\n";
+        }
     }
     if ($$info{frenzy} > 0) {
-        &heal_thyself if ($$info{health} < 28);
-        &fight_someone;
+        if ($$info{health} < 28) {
+            print "healing myself!\n" if ($VERBOSE);
+            &heal_thyself;
+        }
+        print "attempting to beat someone up! " if ($VERBOSE);
+        my $result = &fight_someone;
+        print "$result\n" if ($VERBOSE);
     } elsif ($$info{energy} >= $$config{mission_energy}) {
+        print "doing a mission!\n" if ($VERBOSE);
         &do_a_mission($$config{mission_page},$$config{mission_jid});
     }
     $html = &get_page($HOME);
@@ -72,6 +86,11 @@ sub fight_someone {
     my $fight = pop(@$fights);
 
     my $fight_result = &get_page("$BASE/$fight");
+    if ($fight_result =~ /defeat/i) {
+        return 'defeated';
+    } else {
+        return '#winning';
+    }
 }
 
 sub extract_links {
