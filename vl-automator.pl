@@ -91,7 +91,7 @@ sub fight_someone {
         return '#winning';
     }
     if ($fight_result =~ /cannot process your request/i) {
-        return "request failed\n$fight";
+        return 'request failed';
     }
     return 'defeated';
 }
