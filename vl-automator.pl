@@ -18,7 +18,7 @@ my $CONFIG = $$OPTS{c} if ($$OPTS{c});
 
 # this file contains the cookies for signing in.
 my $COOKIES = "./storm8-vl.cookies";
-   $COOKIES = $$OPTS{c} if ($$OPTS{c});
+   $COOKIES = $$OPTS{C} if ($$OPTS{C});
 
 # this is the http host we will connect to.
 my $HOST = 'vl.storm8.com';
