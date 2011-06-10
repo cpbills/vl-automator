@@ -110,9 +110,12 @@ sub fight_someone {
         return 'request failed';
     }
 
-    open FILE,'>>','/tmp/vampsfight.out';
-    print FILE $fight_result,"\n";
-    close FILE;
+    if ($DEBUG) {
+        # this is sloppy and should be an option in the config, but...
+        open FILE,'>>','/tmp/vampsfight.out';
+        print FILE $fight_result,"\n";
+        close FILE;
+    }
 
     $$victims{$target}++;
     return 'defeated';
