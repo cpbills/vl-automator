@@ -29,6 +29,8 @@ my $COOKIES = $$config{cookies};
 my $BASE    = $$config{base};
 my $HOME    = "$BASE/home.php";
 
+my $victims = read_config($$config{attack_history});
+
 my $browser = LWP::UserAgent->new;
 $browser->cookie_jar( {} );
 $browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
@@ -58,6 +60,8 @@ while ($$info{frenzy} > 0 || $$info{energy} >= $$config{mission_energy}) {
     $info = &get_info($html);
 }
 
+&write_attack_history($$config{attack_history},$victims);
+
 exit 0;
 
 sub heal_thyself {
@@ -81,18 +85,36 @@ sub do_a_mission {
 sub fight_someone {
     my $fight_page = &get_page("$BASE/fight.php");
     my $fights = &extract_links("$fight_page");
-    &fisher_yates_shuffle($fights);
 
-    my $fight = pop(@$fights);
+    # this block of code uses our attack history to attack an available target
+    # who has been least attacked by us...
+    my %enemy_hash = ();
+    # looking for rivalId=[0-9]+
+    foreach my $fight (@$fights) {
+        my ($rivalid) = ($fight =~ /rivalId=([0-9]+)/i);
+        $enemy_hash{$rivalid} = 0;
+        $enemy_hash{$rivalid} = $$victims{$rivalid} if ($$victims{$rivalid});
+    }
+    my @targets = sort { $enemy_hash{$b} <=> $enemy_hash{$a} } keys %enemy_hash;
+    my $target = pop(@targets);
+    my ($fight) = grep { /rivalId=$target/i } @$fights;
 
     my $fight_result = &get_page("$BASE/$fight");
     print "$BASE/$fight\n" if ($DEBUG);
+
     if ($fight_result =~ /you won the fight/i) {
+        $$victims{$target}++;
         return '#winning';
     }
     if ($fight_result =~ /cannot process your request/i) {
         return 'request failed';
     }
+
+    open FILE,'>>','/tmp/vampsfight.out';
+    print FILE $fight_result,"\n";
+    close FILE;
+
+    $$victims{$target}++;
     return 'defeated';
 }
 
@@ -195,6 +217,20 @@ sub get_page {
     } else {
         print STDERR "could not get $url -- ", $response->status_line, "\n";
         exit 1;
+    }
+}
+
+sub write_attack_history {
+    my $log     = shift;
+    my $history = shift;
+
+    if (open FILE,'>',$log) {
+        foreach my $player (keys %$history) {
+            print FILE "$player = $$history{$player}\n";
+        }
+        close FILE;
+    } else {
+        print STDERR "unable to write to $log: $!\n";
     }
 }
 
