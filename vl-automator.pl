@@ -109,6 +109,10 @@ sub fight_someone {
     if ($fight_result =~ /cannot process your request/i) {
         return 'request failed';
     }
+    if ($fight_result =~ /You lost the fight/i) {
+        $$victims{$target}++;
+        return 'defeated';
+    }
 
     if ($DEBUG) {
         # this is sloppy and should be an option in the config, but...
@@ -117,8 +121,7 @@ sub fight_someone {
         close FILE;
     }
 
-    $$victims{$target}++;
-    return 'defeated';
+    return 'unhandled';
 }
 
 sub extract_links {
