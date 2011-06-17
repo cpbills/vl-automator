@@ -320,3 +320,103 @@ sub read_config {
     }
     return \%options;
 }
+
+sub traverse_profile_comments {
+    my $comments = "$BASE/ajax/getNewsFeedStories.php?selectedTab=comment";
+    # first, fetch our comments
+    my $html = &get_page($comments);
+    # find any clan-code looking text in our comments section and init @codes
+    my @codes = &find_clan_codes($html);
+    # get links to all the people who've posted comments on our page
+    my (@profiles) = ($html =~ /\/(profile.php[^'"]*)/gis);
+    foreach my $profile (@profiles) {
+        # for some reason, the extra data changes from grabbing the profile
+        # to grabbing the comments; forcing us to hit storm8s server twice
+        my $profile = &get_page("$BASE/$profile");
+        if ($profile =~ /\/([^'"]*Tab=comment[^'"]*)/gis) {
+            my $comments = $1;
+            my $html = &get_page("$BASE/$comments");
+            # push the newly found codes onto our array
+            my @found = &find_clan_codes($html);
+            push @codes, @found if (scalar @found > 0);
+        }
+    }
+    return @codes;
+}
+
+sub invite_to_clan {
+    my $code   =   shift;
+    return unless $code;
+    my $url = "$BASE/group.php?action=Invite&mobcode=$code";
+    my $result = &get_page($url);
+    if ($result =~ /<span class="success">Success!<\/span>/gi) {
+        print "$code worked\n" if ($VERBOSE);
+    } elsif ($result =~ /<span class="fail">Defeat:<\/span>/gi) {
+        print "$code failed\n" if ($VERBOSE);
+    } else {
+        print "$code resulted in unknown response\n" if ($VERBOSE);
+        print "$result\n" if ($DEBUG);
+        exit if ($DEBUG);
+    }
+}
+
+sub read_clan_codes {
+    my %clan_codes = ();
+    my $file = $$config{clan_codes};
+
+    if ($file && -r $file) {
+        if (open CLAN_CODES,'<',$file) {
+            while (<CLAN_CODES>) {
+                my $old_code = $_;
+                chomp($old_code);
+                $clan_codes{$old_code} = 1;
+            }
+            close CLAN_CODES;
+        } else {
+            print "failed to open $file: $!\n" if ($DEBUG);
+        }
+    } else {
+        print "could not open clan_code file, check config\n" if ($DEBUG);
+    }
+    return \%clan_codes;
+}
+
+sub write_clan_codes {
+    my $clan_codes  =   shift;
+    my $file        =   $$config{clan_codes};
+
+    if ($file) {
+        if (open CLAN_CODES,'>>',$file) {
+            foreach my $code (keys %$clan_codes) {
+                print CLAN_CODES "$code\n";
+            }
+            close CLAN_CODES;
+        } else {
+            print "failed to open $file: $!\n" if ($DEBUG);
+        }
+    } else {
+        print "could not open clan_code file, check config\n" if ($DEBUG);
+    }
+}
+
+sub find_clan_codes {
+    # this finds all 5-6 letter words in a page, compares against the history
+    # and returns an array of untried 'codes'
+    my $html =   shift;
+
+    my $old_codes = &read_clan_codes;
+    my $new_codes = {};
+
+    my (@codes) = ($html =~ /[\s>](\w{5,6})[\s<]/gis);
+    foreach my $code (@codes) {
+        $code = lc($code);
+        unless ($$old_codes{$code}) {
+            $$new_codes{$code} = 1;
+        }
+    }
+    &write_clan_codes($new_codes);
+    if (scalar(keys %$new_codes) > 0) {
+        return keys %$new_codes;
+    }
+    return undef;
+}
