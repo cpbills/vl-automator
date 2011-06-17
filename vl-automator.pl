@@ -35,10 +35,6 @@ my $browser = LWP::UserAgent->new;
 $browser->cookie_jar( {} );
 $browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
 
-exit;
-
-exit;
-
 if ($$OPTS{a}) {
     # -a for ADD ... yeah... wait, not eh dee dee... like, attention
     # deficit di... what was i saying? oh, right add, for adding new people
