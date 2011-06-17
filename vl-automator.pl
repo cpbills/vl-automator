@@ -38,6 +38,65 @@ $browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
 my $html = &get_page($HOME);
 my $info = &get_info($html);
 
+sub read_clan_codes {
+    my %clan_codes = ();
+    my $file = $$config{clan_codes};
+
+    if ($file && -r $file) {
+        if (open CLAN_CODES,'<',$file) {
+            while (<CLAN_CODES>) {
+                my $old_code = $_;
+                chomp($old_code);
+                $clan_codes{$old_code} = 1;
+            }
+            close CLAN_CODES;
+        } else {
+            print "failed to open $file: $!\n" if ($DEBUG);
+        }
+    } else {
+        print "could not open clan_code file, check config\n" if ($DEBUG);
+    }
+    return \%clan_codes;
+}
+
+sub write_clan_codes {
+    my $clan_codes  =   shift;
+    my $file        =   $$config{clan_codes};
+
+    if ($file) {
+        if (open CLAN_CODES,'>>',$file) {
+            foreach my $code (keys %$clan_codes) {
+                print CLAN_CODES "$code\n";
+            }
+            close CLAN_CODES;
+        } else {
+            print "failed to open $file: $!\n" if ($DEBUG);
+        }
+    } else {
+        print "could not open clan_code file, check config\n" if ($DEBUG);
+    }
+}
+
+sub find_clan_codes {
+    # this finds all 5-6 letter words in a page, compares against the history
+    # and returns an array of untried 'codes'
+    my $url =   shift;
+
+    my $old_codes = &read_clan_codes;
+    my $new_codes = {};
+
+    my $html = &get_page($url);
+    my (@codes) = ($html =~ /[\s>](\w{5,6})[\s<]/gis);
+    foreach my $code (@codes) {
+        $code = lc($code);
+        unless ($$old_codes{$code}) {
+            $$new_codes{$code} = 1;
+        }
+    }
+    &write_clan_codes($new_codes);
+    return keys %$new_codes;
+}
+
 while ($$info{frenzy} > 0 || $$info{energy} >= $$config{mission_energy}) {
     if ($DEBUG) {
         foreach my $key (keys %$info) {
