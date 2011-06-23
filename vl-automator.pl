@@ -361,7 +361,7 @@ sub find_clan_codes {
     my $old_codes = &read_clan_codes;
     my $new_codes = {};
 
-    my (@codes) = ($html =~ /[\s>](\w{5,6})[\s<]/gis);
+    my (@codes) = ($html =~ /\W(\w{5,6})\W/gis);
     foreach my $code (@codes) {
         $code = lc($code);
         unless ($$old_codes{$code}) {
