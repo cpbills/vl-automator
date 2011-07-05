@@ -10,7 +10,10 @@ use Getopt::Std;
 my $OPTS = {};
 
 # get the options using Getopt::Std's exported 'getopts'
-getopts('c:dva',$OPTS);
+# -a - attack
+# -m - missions
+# -p - player add
+getopts('c:dvamp',$OPTS);
 
 # this is a file containing url options / params to pass to the storm8 server
 my $CONFIG = './config';
@@ -29,56 +32,70 @@ my $COOKIES = $$config{cookies};
 my $BASE    = $$config{base};
 my $HOME    = "$BASE/home.php";
 
-my $victims = read_config($$config{attack_history});
 
 my $browser = LWP::UserAgent->new;
 $browser->cookie_jar( {} );
 $browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
 
-if ($$OPTS{a}) {
-    # -a for ADD ... yeah... wait, not eh dee dee... like, attention
-    # deficit di... what was i saying? oh, right add, for adding new people
-    # to your clan... because i fuckin' automated that shit.
-    # it goes through your comments, finds people's profiles, then goes through
-    # their comments. it looks for 5-6 letter/number 'words' and tries using
-    # them as clan codes. it takes a while to do, so i made it a flag...
-    my @clan_codes = &traverse_profile_comments;
-    foreach my $code (@clan_codes) {
-        &invite_to_clan($code);
-    }
-}
+&player_add if ($$OPTS{p});
+&missions   if ($$OPTS{m});
+&attacks    if ($$OPTS{a});
 
-my $html = &get_page($HOME);
-my $info = &get_info($html);
+sub attacks {
+    my $html = &get_page($HOME);
+    my $info = &get_info($html);
 
-while ($$info{frenzy} > 0 || $$info{energy} >= $$config{mission_energy}) {
-    if ($DEBUG) {
-        foreach my $key (keys %$info) {
-            print "$key: $$info{$key}\n";
+    my $victims = read_config($$config{attack_history});
+    while ($$info{frenzy} > 0) {
+        if ($DEBUG) {
+            foreach my $key (keys %$info) {
+                print "$key: $$info{$key}\n";
+            }
         }
-    }
-    if ($$info{frenzy} > 0) {
         if ($$info{health} < 28) {
             print "healing myself!\n" if ($VERBOSE);
             &heal_thyself;
         }
         print "attempting to beat someone up! " if ($VERBOSE);
-        my $result = &fight_someone;
+        my $result = &fight_someone($victims);
         print "$result\n" if ($VERBOSE);
-    } elsif ($$info{energy} >= $$config{mission_energy}) {
-        print "doing a mission!\n" if ($VERBOSE);
-        &do_a_mission($$config{mission_page},$$config{mission_jid});
+
+        $html = &get_page($HOME);
+        $info = &get_info($html);
     }
-    $html = &get_page($HOME);
-    $info = &get_info($html);
+    &write_attack_history($$config{attack_history},$victims);
+    return;
 }
 
-&write_attack_history($$config{attack_history},$victims);
+sub missions {
+    my $html = &get_page($HOME);
+    my $info = &get_info($html);
+    while ($$info{energy} >= $$config{mission_energy}) {
+        print "doing a mission!\n" if ($VERBOSE);
+        &do_a_mission($$config{mission_page},$$config{mission_jid});
+
+        $html = &get_page($HOME);
+        $info = &get_info($html);
+    }
+    return;
+}
+
 
 exit 0;
 
 sub heal_thyself {
     my $result = &get_page("$BASE/hospital.php?action=heal");
+}
+
+sub player_add {
+    # adding to your clan... because i fuckin' automated that shit.
+    # it goes through your comments, finds people's profiles, then goes through
+    # their comments. it looks for 5-6 letter/number 'words' and tries using
+    # them as clan codes. it takes a while to do, so i made it optional...
+    my @clan_codes = &traverse_profile_comments;
+    foreach my $code (@clan_codes) {
+        &invite_to_clan($code);
+    }
 }
 
 sub do_a_mission {
@@ -96,6 +113,8 @@ sub do_a_mission {
 }
 
 sub fight_someone {
+    my $victims = shift;
+
     my $fight_page = &get_page("$BASE/fight.php");
     my $fights = &extract_links("$fight_page");
 
