@@ -37,13 +37,13 @@ my $browser = LWP::UserAgent->new;
 $browser->cookie_jar( {} );
 $browser->requests_redirectable( [ 'GET', 'POST', 'HEAD' ] );
 
-&player_add if ($$OPTS{p});
-&missions   if ($$OPTS{m});
-&attacks    if ($$OPTS{a});
+player_add  if ($$OPTS{p});
+missions    if ($$OPTS{m});
+attacks     if ($$OPTS{a});
 
 sub attacks {
-    my $html = &get_page($HOME);
-    my $info = &get_info($html);
+    my $html = get_page($HOME);
+    my $info = get_info($html);
 
     my $victims = read_config($$config{attack_history});
     while ($$info{frenzy} > 0) {
@@ -54,28 +54,28 @@ sub attacks {
         }
         if ($$info{health} < 28) {
             print "healing myself!\n" if ($VERBOSE);
-            &heal_thyself;
+            heal_thyself();
         }
         print "attempting to beat someone up! " if ($VERBOSE);
-        my $result = &fight_someone($victims);
+        my $result = fight_someone($victims);
         print "$result\n" if ($VERBOSE);
 
-        $html = &get_page($HOME);
-        $info = &get_info($html);
+        $html = get_page($HOME);
+        $info = get_info($html);
     }
-    &write_attack_history($$config{attack_history},$victims);
+    write_attack_history($$config{attack_history},$victims);
     return;
 }
 
 sub missions {
-    my $html = &get_page($HOME);
-    my $info = &get_info($html);
+    my $html = get_page($HOME);
+    my $info = get_info($html);
     while ($$info{energy} >= $$config{mission_energy}) {
         print "doing a mission!\n" if ($VERBOSE);
-        &do_a_mission($$config{mission_page},$$config{mission_jid});
+        do_a_mission($$config{mission_page},$$config{mission_jid});
 
-        $html = &get_page($HOME);
-        $info = &get_info($html);
+        $html = get_page($HOME);
+        $info = get_info($html);
     }
     return;
 }
@@ -84,7 +84,7 @@ sub missions {
 exit 0;
 
 sub heal_thyself {
-    my $result = &get_page("$BASE/hospital.php?action=heal");
+    my $result = get_page("$BASE/hospital.php?action=heal");
 }
 
 sub player_add {
@@ -92,9 +92,9 @@ sub player_add {
     # it goes through your comments, finds people's profiles, then goes through
     # their comments. it looks for 5-6 letter/number 'words' and tries using
     # them as clan codes. it takes a while to do, so i made it optional...
-    my @clan_codes = &traverse_profile_comments;
+    my @clan_codes = traverse_profile_comments();
     foreach my $code (@clan_codes) {
-        &invite_to_clan($code);
+        invite_to_clan($code);
     }
 }
 
@@ -105,18 +105,18 @@ sub do_a_mission {
     my $cat     =   shift;
     my $jid     =   shift;
 
-    my $page = &get_page("$BASE/$cat");
-    my $missions = &extract_links($page);
+    my $page = get_page("$BASE/$cat");
+    my $missions = extract_links($page);
     foreach my $mission (@$missions) {
-        my $result = &get_page("$BASE/$mission") if ($mission =~ /jid=$jid/);
+        my $result = get_page("$BASE/$mission") if ($mission =~ /jid=$jid/);
     }
 }
 
 sub fight_someone {
     my $victims = shift;
 
-    my $fight_page = &get_page("$BASE/fight.php");
-    my $fights = &extract_links("$fight_page");
+    my $fight_page = get_page("$BASE/fight.php");
+    my $fights = extract_links("$fight_page");
 
     # this block of code uses our attack history to attack an available target
     # who has been least attacked by us...
@@ -131,7 +131,7 @@ sub fight_someone {
     my $target = pop(@targets);
     my ($fight) = grep { /rivalId=$target/i } @$fights;
 
-    my $fight_result = &get_page("$BASE/$fight");
+    my $fight_result = get_page("$BASE/$fight");
     print "$BASE/$fight\n" if ($DEBUG);
 
     if ($fight_result =~ /you won the fight/i) {
@@ -192,7 +192,7 @@ sub extract_links {
         #    for(i=0;i<b.length;i++) {if(p[i])a=s(b[i])+a;else a+=s(b[i]);}
         #    return a;
         #}
-        push @links, &decrypt_link($xs{$key},$bs{$key},$ps{$key});
+        push @links, decrypt_link($xs{$key},$bs{$key},$ps{$key});
     }
     return \@links;
 }
@@ -297,20 +297,20 @@ sub read_config {
 sub traverse_profile_comments {
     my $comments = "$BASE/ajax/getNewsFeedStories.php?selectedTab=comment";
     # first, fetch our comments
-    my $html = &get_page($comments);
+    my $html = get_page($comments);
     # find any clan-code looking text in our comments section and init @codes
-    my @codes = &find_clan_codes($html);
+    my @codes = find_clan_codes($html);
     # get links to all the people who've posted comments on our page
     my (@profiles) = ($html =~ /\/(profile.php[^'"]*)/gis);
     foreach my $profile (@profiles) {
         # for some reason, the extra data changes from grabbing the profile
         # to grabbing the comments; forcing us to hit storm8s server twice
-        my $profile = &get_page("$BASE/$profile");
+        my $profile = get_page("$BASE/$profile");
         if ($profile =~ /\/([^'"]*Tab=comment[^'"]*)/gis) {
             my $comments = $1;
-            my $html = &get_page("$BASE/$comments");
+            my $html = get_page("$BASE/$comments");
             # push the newly found codes onto our array
-            my @found = &find_clan_codes($html);
+            my @found = find_clan_codes($html);
             push @codes, @found if (scalar @found > 0);
         }
     }
@@ -321,7 +321,7 @@ sub invite_to_clan {
     my $code   =   shift;
     return unless $code;
     my $url = "$BASE/group.php?action=Invite&mobcode=$code";
-    my $result = &get_page($url);
+    my $result = get_page($url);
     if ($result =~ /<span class="success">Success!<\/span>/gi) {
         print "$code worked\n" if ($VERBOSE);
     } elsif ($result =~ /<span class="fail">Defeat:<\/span>/gi) {
@@ -377,7 +377,7 @@ sub find_clan_codes {
     # and returns an array of untried 'codes'
     my $html =   shift;
 
-    my $old_codes = &read_clan_codes;
+    my $old_codes = read_clan_codes();
     my $new_codes = {};
 
     my (@codes) = ($html =~ /\W(\w{5,6})\W/gis);
@@ -387,7 +387,7 @@ sub find_clan_codes {
             $$new_codes{$code} = 1;
         }
     }
-    &write_clan_codes($new_codes);
+    write_clan_codes($new_codes);
     if (scalar(keys %$new_codes) > 0) {
         return keys %$new_codes;
     }
